@@ -1,0 +1,53 @@
+CREATE TABLE MediaItems(
+MID NUMBER(11,0),
+TITLE VARCHAR2(200),
+PROD_YEAR NUMBER(4),
+TITLE_LENGTH NUMBER(5),
+
+CONSTRAINT pk PRIMARY KEY (MID)
+);
+/
+
+CREATE TABLE Similarity(
+MID1 NUMBER(11,0) NOT NULL,
+MID2 NUMBER(11,0) NOT NULL,
+SIMILARITY FLOAT,
+
+CONSTRAINT pk_Similarity PRIMARY KEY (MID1, MID2),
+CONSTRAINT fk1_MediaItems FOREIGN KEY (MID1) REFERENCES MediaItems (MID),
+CONSTRAINT fk2_MediaItems FOREIGN KEY (MID2) REFERENCES MediaItems (MID)
+);
+/
+
+CREATE SEQUENCE mid_seq START WITH 1;
+/
+
+CREATE or replace trigger AutoIncrement before
+insert on MediaItems for each row
+BEGIN
+    select mid_seq.nextval-1 into :new.MID from dual;
+    SELECT LENGTH(:new.TITLE) INTO :new.TITLE_LENGTH FROM dual;
+    :new.TITLE_LENGTH := LENGTH(:new.TITLE);
+END;
+/
+
+CREATE or replace function MaximalDistance RETURN
+ NUMBER IS
+ max_distance number;
+begin
+ select MAX(POWER(m1.PROD_YEAR - m2.PROD_YEAR, 2)) INTO max_distance
+   FROM MediaItems m1, MediaItems m2;
+ return max_distance;
+END;
+/
+
+CREATE or replace function SimCalculation(MID1 NUMBER, MID2 NUMBER, MAX_DISTANCE NUMBER)
+RETURN FLOAT IS
+MID1_PROD_YEAR Number;
+MID2_PROD_YEAR Number;
+BEGIN
+SELECT PROD_YEAR INTO MID1_PROD_YEAR FROM MediaItems WHERE MID = MID1;
+SELECT PROD_YEAR INTO MID2_PROD_YEAR FROM MediaItems WHERE MID = MID2;
+RETURN 1-( POWER(MID1_PROD_YEAR - MID2_PROD_YEAR, 2)/MAX_DISTANCE);
+END;
+/
