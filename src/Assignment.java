@@ -154,7 +154,6 @@ public class Assignment {
             preparedStatement.setLong(2, MID2);
             preparedStatement.setFloat(3, pairSimilarity);
             preparedStatement.executeUpdate();
-            System.out.println("inserted similarity row");
 
             this.connection.commit();
             // closing resources
@@ -183,7 +182,6 @@ public class Assignment {
             preparedStatement.setLong(2, MID1);
             preparedStatement.setLong(3, MID2);
             preparedStatement.executeUpdate();
-            System.out.println("updated similarity row");
 
             this.connection.commit();
             // closing resources
@@ -212,7 +210,6 @@ public class Assignment {
             callableStatement.setLong(2, MID1);
             callableStatement.setLong(3, MID2);
             callableStatement.setInt(4, maximalDistance);
-            System.out.println("CALL SimCalculation("+MID1+","+MID2+","+maximalDistance+")");
             callableStatement.execute();
             pairSimilarity =  callableStatement.getFloat(1);
 
