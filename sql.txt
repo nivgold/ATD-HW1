@@ -1,10 +1,10 @@
 CREATE TABLE MediaItems(
-MID NUMBER(11,0),
+MID NUMBER(11,0) NOT NULL,
 TITLE VARCHAR2(200),
 PROD_YEAR NUMBER(4),
 TITLE_LENGTH NUMBER(5),
 
-CONSTRAINT pk PRIMARY KEY (MID)
+CONSTRAINT pk_MediaItems PRIMARY KEY (MID)
 );
 /
 
@@ -14,20 +14,27 @@ MID2 NUMBER(11,0) NOT NULL,
 SIMILARITY FLOAT,
 
 CONSTRAINT pk_Similarity PRIMARY KEY (MID1, MID2),
-CONSTRAINT fk1_MediaItems FOREIGN KEY (MID1) REFERENCES MediaItems (MID),
-CONSTRAINT fk2_MediaItems FOREIGN KEY (MID2) REFERENCES MediaItems (MID)
+CONSTRAINT fk_MID1 FOREIGN KEY (MID1) REFERENCES MediaItems (MID),
+CONSTRAINT fk_MID2 FOREIGN KEY (MID2) REFERENCES MediaItems (MID)
 );
-/
-
-CREATE SEQUENCE mid_seq START WITH 1;
 /
 
 CREATE or replace trigger AutoIncrement before
 insert on MediaItems for each row
+DECLARE
+    lastMID NUMBER;
 BEGIN
-    select mid_seq.nextval-1 into :new.MID from dual;
-    SELECT LENGTH(:new.TITLE) INTO :new.TITLE_LENGTH FROM dual;
-    :new.TITLE_LENGTH := LENGTH(:new.TITLE);
+    -- finding the last MID that was inserted to MediaItems table
+   SELECT MAX(MID) INTO lastMID FROM MediaItems;
+   IF lastMID IS NULL THEN
+   -- if lastMID is null then there is no data at all in MediaItems table and then the new MID should be 0
+    :new.MID:=0;
+   ELSE
+   -- otherwise, the new MID need to be the value of the last MID + 1
+    :new.MID:=lastMID+1;
+   END IF;
+
+   :new.TITLE_LENGTH := LENGTH(:new.TITLE);
 END;
 /
 
@@ -35,10 +42,11 @@ CREATE or replace function MaximalDistance RETURN
  NUMBER IS
  max_distance number;
 begin
+-- calculating the distance between every pair and taking the max distance
  select MAX(POWER(m1.PROD_YEAR - m2.PROD_YEAR, 2)) INTO max_distance
    FROM MediaItems m1, MediaItems m2;
  return max_distance;
-END;
+END MaximalDistance;
 /
 
 CREATE or replace function SimCalculation(MID1 NUMBER, MID2 NUMBER, MAX_DISTANCE NUMBER)
@@ -46,8 +54,11 @@ RETURN FLOAT IS
 MID1_PROD_YEAR Number;
 MID2_PROD_YEAR Number;
 BEGIN
+-- extracting MID1 PROD_YEAR from MediaItems table
 SELECT PROD_YEAR INTO MID1_PROD_YEAR FROM MediaItems WHERE MID = MID1;
+-- extracting MID2 PROD_YEAR from MediaItems table
 SELECT PROD_YEAR INTO MID2_PROD_YEAR FROM MediaItems WHERE MID = MID2;
-RETURN 1-( POWER(MID1_PROD_YEAR - MID2_PROD_YEAR, 2)/MAX_DISTANCE);
-END;
+-- calculating the similarity between MID1 and MID2 from the equation
+RETURN (1-( POWER(MID1_PROD_YEAR - MID2_PROD_YEAR, 2)/MAX_DISTANCE));
+END SimCalculation;
 /
